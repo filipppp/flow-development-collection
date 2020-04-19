@@ -262,6 +262,7 @@ class ResourceManager
 
     /**
      * Import a deferred resource into it's destination collection and persist it.
+     * This will do nothing, if the resource is not deferred (has no source attached).
      *
      * @param PersistentResource $resource
      * @throws Exception
@@ -282,7 +283,12 @@ class ResourceManager
         $collection = $this->collections[$collectionName];
         try {
             // Optimally the collection would just accept a PersistentResource and update it, but this would mean an API change
-            $importedResource = $collection->importResource($resource->detachSource());
+            $source = $resource->detachSource();
+            if (is_array($source)) {
+                $importedResource = $collection->importUploadedResource($source, $collectionName);
+            } else {
+                $importedResource = $collection->importResource($source, $collectionName);
+            }
             $resource->setSha1($importedResource->getSha1());
             $resource->setMd5($importedResource->getMd5());
             $resource->setFileSize($importedResource->getFileSize());
@@ -291,7 +297,7 @@ class ResourceManager
         }
 
         $this->resourceRepository->add($resource);
-        $this->logger->debug(sprintf('Successfully imported the uploaded file "%s" into the resource collection "%s" (storage: "%s", a %s. SHA1: %s)', $resource->getFilename(), $collectionName, $this->collections[$collectionName]->getStorage()->getName(), get_class($this->collections[$collectionName]->getStorage()), $resource->getSha1()));
+        $this->logger->debug(sprintf('Successfully imported the uploaded file "%s" into the resource collection "%s" (storage: "%s", a %s. SHA1: %s)', $resource->getFilename(), $collectionName, $collection->getStorage()->getName(), get_class($collection->getStorage()), $resource->getSha1()));
     }
 
     /**
